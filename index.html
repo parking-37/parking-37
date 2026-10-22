@@ -276,13 +276,13 @@ function pintar() {
 const pastilla = (u) => u === yo ? '<span class="pastilla yo">🟢 Tuya</span>'
   : u ? `<span class="pastilla otro">🔵 ${esc(nombre(u))}</span>` : '<span class="pastilla libre">⚪ Libre</span>';
 
-// En la semana que viene se puede ceder, pero no «ya no voy»: para eso basta con desmarcar el día.
+// Solo se cede un día con solape. En la semana que viene no hay «ya no voy»: basta con desmarcar el día.
 function filaDia(d, hoy, semana, { ceder = true, cancelar = true } = {}) {
   const pasado = d.fecha < hoy;
   const abierto = diaAbierto(semana, d.dia, hoy);
   const botones = [];
   if (abierto && !d.festivo && d.asignado === yo) {
-    if (ceder) botones.push(`<button class="chip" data-accion="ceder" data-semana="${semana}" data-dia="${d.dia}">Cederla a ${esc(nombre(otro))}</button>`);
+    if (ceder && d.solape) botones.push(`<button class="chip" data-accion="ceder" data-semana="${semana}" data-dia="${d.dia}">Cederla a ${esc(nombre(otro))}</button>`);
     if (cancelar) botones.push(`<button class="chip peligro" data-accion="cancelar" data-semana="${semana}" data-dia="${d.dia}">Ya no voy</button>`);
   }
   const notas = d.ajustes.map((a) => textoAjuste(a)).join(' · ');

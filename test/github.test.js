@@ -76,6 +76,13 @@ test('la reaplicación respeta el estado nuevo: no se cede dos veces el mismo d�
   assert.equal(calcular(repo.estado()).semanas['2026-W43'].dias.V.asignado, 'sendoa');
 });
 
+test('solo se cede un día con solape', () => {
+  const s = inicial();
+  s.semanas['2026-W43'] = { prevision: { sendoa: ['J', 'V'], mikel: ['V'] }, ajustes: [], festivos: [] };
+  assert.throws(() => ajuste({ yo: 'sendoa', otro: 'mikel', semana: '2026-W43', dia: 'J', tipo: 'cesion', hoy }).mutar(s), /pedís los dos/);
+  assert.doesNotThrow(() => ajuste({ yo: 'sendoa', otro: 'mikel', semana: '2026-W43', dia: 'J', tipo: 'cancelacion', hoy }).mutar(structuredClone(s)));
+});
+
 test('fuera de plazo: ni previsión de la semana en curso ni ajustes de días pasados', () => {
   const s = inicial();
   assert.throws(() => prevision({ yo: 'sendoa', semana: '2026-W43', dias: ['V'], hoy }).mutar(s), CambioNoValido);

@@ -21,14 +21,16 @@ export function prevision({ yo, semana, dias, hoy }) {
   };
 }
 
-// tipo: 'cesion' | 'cancelacion'. Solo puede hacerlo quien tiene la plaza ese día.
+// tipo: 'cesion' | 'cancelacion'. Solo puede hacerlo quien tiene la plaza ese día, y ceder solo si hay solape.
 export function ajuste({ yo, otro, semana, dia, tipo, hoy, ts = new Date().toISOString() }) {
   const texto = tipo === 'cesion' ? `cede ${dia} ${semana} a ${otro}` : `ya no va ${dia} ${semana}`;
   return {
     mensaje: `${yo}: ${texto}`,
     mutar(state) {
       if (!diaAbierto(semana, dia, hoy)) throw new CambioNoValido('Ese día ya ha pasado.');
-      if (calcular(state).semanas[semana]?.dias[dia]?.asignado !== yo) throw new CambioNoValido('Ese día ya no tienes la plaza.');
+      const d = calcular(state).semanas[semana]?.dias[dia];
+      if (d?.asignado !== yo) throw new CambioNoValido('Ese día ya no tienes la plaza.');
+      if (tipo === 'cesion' && !d.solape) throw new CambioNoValido('Solo se puede ceder un día que pedís los dos.');
       semanaDe(state, semana).ajustes.push({ dia, tipo, de: yo, a: tipo === 'cesion' ? otro : null, por: yo, ts });
       return state;
     },
