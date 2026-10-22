@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parking 37</title>
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16171a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Parking 37">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root {
+    --fondo: #f6f5f1; --superficie: #ffffff; --borde: #e3e1da; --texto: #1d1d1f; --suave: #6b6a66;
+    --yo: #1f8a4c; --yo-fondo: #e3f4ea; --otro: #2f6bd8; --otro-fondo: #e4ecfb; --libre: #9a9893;
+    --aviso: #a15c00; --aviso-fondo: #fdf1dc; --error: #b42318; --rayo: #d99a00;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fondo: #16171a; --superficie: #202226; --borde: #33363c; --texto: #f2f1ee; --suave: #a3a19c;
+      --yo: #4cc47f; --yo-fondo: #17301f; --otro: #6f9ef5; --otro-fondo: #1a2741; --libre: #75736f;
+      --aviso: #f0b45a; --aviso-fondo: #33270f; --error: #ff7b6e; --rayo: #ffc53d;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--texto);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top) 0 calc(env(safe-area-inset-bottom) + 88px);
+  }
+  main { max-width: 520px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.35rem; margin: 8px 0 2px; }
+  h2 { font-size: 1.05rem; margin: 24px 0 8px; }
+  p { margin: 6px 0; }
+  .suave { color: var(--suave); font-size: .92rem; }
+  .cabecera { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .boton {
+    border: 0; border-radius: 12px; padding: 14px 18px; font-weight: 600;
+    background: var(--texto); color: var(--fondo); width: 100%;
+  }
+  .boton:disabled { opacity: .4; cursor: default; }
+  .enlace { background: none; border: 0; padding: 4px 0; color: var(--suave); text-decoration: underline; font-size: .92rem; }
+  .chip {
+    border: 1px solid var(--borde); background: var(--superficie); border-radius: 999px;
+    padding: 6px 12px; font-size: .85rem; white-space: nowrap;
+  }
+  .chip.peligro { color: var(--error); }
+  input[type=password], input[type=text] {
+    width: 100%; font: inherit; padding: 12px; border-radius: 12px;
+    border: 1px solid var(--borde); background: var(--superficie); color: var(--texto);
+  }
+  .tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 16px; padding: 16px; margin: 12px 0; }
+  .aviso { background: var(--aviso-fondo); color: var(--aviso); border-radius: 12px; padding: 10px 12px; margin: 12px 0; font-size: .92rem; }
+  .error { color: var(--error); }
+  a { color: var(--otro); }
+
+  /* Botones grandes L–V */
+  .marcar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0; }
+  .marcar button {
+    border: 2px solid var(--borde); background: var(--superficie); border-radius: 14px;
+    min-height: 72px; padding: 8px 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .marcar button b { font-size: 1.4rem; }
+  .marcar button span { font-size: .78rem; color: var(--suave); }
+  .marcar button[aria-pressed=true] { background: var(--yo); border-color: var(--yo); color: #fff; }
+  .marcar button[aria-pressed=true] span { color: #fff; opacity: .85; }
+  .marcar button:disabled { opacity: .35; }
+
+  /* Lista de días */
+  .dias { list-style: none; margin: 12px 0; padding: 0 16px; }
+  .dia { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 12px 0; border-top: 1px solid var(--borde); }
+  .dia:first-child { border-top: 0; }
+  .dia .fecha { width: 64px; font-weight: 600; }
+  .dia .quien { flex: 1; min-width: 0; }
+  .dia .festivo { flex: none; }
+  .dia.hoy .fecha::after { content: "hoy"; display: block; font-size: .72rem; font-weight: 600; color: var(--yo); text-transform: uppercase; letter-spacing: .04em; }
+  .dia.pasado { opacity: .55; }
+  .dia .acciones { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; padding-left: 74px; }
+  .dia .acciones:empty { display: none; }
+  .pastilla { display: inline-block; border-radius: 8px; padding: 2px 8px; font-weight: 600; }
+  .pastilla.yo { background: var(--yo-fondo); color: var(--yo); }
+  .pastilla.otro { background: var(--otro-fondo); color: var(--otro); }
+  .pastilla.libre { color: var(--libre); }
+  .rayo { color: var(--rayo); }
+  .notas { font-size: .82rem; color: var(--suave); width: 100%; padding-left: 74px; }
+
+  /* Marcador */
+  .marcador { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; text-align: center; }
+  .marcador .n { font-size: 3.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .marcador .sep { font-size: 2rem; color: var(--suave); padding: 0 8px; }
+  .marcador .yo .n { color: var(--yo); }
+  .marcador .otro .n { color: var(--otro); }
+  .historial .semana { padding: 10px 0; border-top: 1px solid var(--borde); }
+  .mini { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 6px; text-align: center; font-size: .82rem; }
+  .mini span { border-radius: 6px; padding: 4px 0; }
+  .mini .yo { background: var(--yo-fondo); color: var(--yo); }
+  .mini .otro { background: var(--otro-fondo); color: var(--otro); }
+  .mini .libre { color: var(--libre); }
+
+  /* Pestañas abajo, al alcance del pulgar */
+  nav {
+    position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center;
+    background: var(--superficie); border-top: 1px solid var(--borde);
+    padding: 6px 8px calc(env(safe-area-inset-bottom) + 6px);
+  }
+  nav[hidden] { display: none; }
+  nav div { display: flex; width: 100%; max-width: 520px; }
+  nav button { flex: 1; border: 0; background: none; padding: 10px 4px; border-radius: 10px; font-size: .9rem; color: var(--suave); }
+  nav button[aria-current=page] { color: var(--texto); font-weight: 700; background: var(--fondo); }
+  .pie { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+  #estado { min-height: 1.5em; text-align: center; margin: 10px 0 0; font-size: .92rem; }
+</style>
+</head>
+<body>
+<main id="app"><p class="suave">Cargando…</p></main>
+<nav id="nav" hidden><div>
+  <button data-pestana="siguiente">Próxima</button>
+  <button data-pestana="actual">Esta semana</button>
+  <button data-pestana="marcador">Marcador</button>
+</div></nav>
+
+<script type="module">
+import { calcular, hoyMadrid, semanaISO, sumarSemanas, lunesDe, fechaDe, diaAbierto, DIAS } from './asignacion.js';
+import { Almacen, ErrorGitHub } from './github.js';
+import * as cambios from './cambios.js';
+
+// Dónde viven los datos (repo privado).
+const OWNER = 'kalashftw';
+const REPO = 'parking-37-data';
+const CLAVE_TOKEN = 'parking37.token';
+const URL_TOKEN = 'https://github.com/settings/personal-access-tokens/new';
+
+const app = document.getElementById('app');
+const nav = document.getElementById('nav');
+
+let almacen = null;
+let datos = null;      // { state, sha }
+let yo = null;         // 'sendoa' | 'mikel'
+let otro = null;
+let pestana = 'siguiente';
+let borrador = null;   // días marcados sin guardar para la semana que viene
+let ocupado = false;
+let estado = { texto: '', error: false };
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const nombre = (u) => datos.state.users[u].nombre;
+const fmt = (fecha, opciones) => new Intl.DateTimeFormat('es-ES', { timeZone: 'UTC', ...opciones }).format(new Date(fecha + 'T12:00:00Z'));
+const diaCorto = (fecha) => fmt(fecha, { weekday: 'short', day: 'numeric' }).replace(',', '');
+const rango = (semana) => `${fmt(lunesDe(semana), { day: 'numeric', month: 'short' })} – ${fmt(fechaDe(semana, 'V'), { day: 'numeric', month: 'short' })}`;
+const numSemana = (s) => +s.slice(6);
+
+function leerToken() { try { return localStorage.getItem(CLAVE_TOKEN); } catch { return null; } }
+function guardarToken(t) { try { localStorage.setItem(CLAVE_TOKEN, t); } catch {} }
+function borrarToken() { try { localStorage.removeItem(CLAVE_TOKEN); } catch {} }
+
+// ── Arranque y sesión ─────────────────────────────────────────────────────
+
+async function iniciar(token = leerToken(), validando = false) {
+  if (!token) return pantallaToken();
+  almacen = new Almacen({ token, owner: OWNER, repo: REPO });
+  try {
+    const [usuario, leido] = await Promise.all([almacen.usuario(), almacen.leer()]);
+    const clave = Object.keys(leido.state.users).find((k) => leido.state.users[k].github.toLowerCase() === usuario.login.toLowerCase());
+    if (!clave) {
+      borrarToken();
+      return pantallaToken(`La cuenta ${usuario.login} no es ninguno de los dos usuarios de la plaza.`);
+    }
+    guardarToken(token);
+    datos = leido;
+    yo = clave;
+    otro = Object.keys(leido.state.users).find((k) => k !== yo);
+    if (validando) estado = { texto: `Hola, ${nombre(yo)}`, error: false };
+    pintar();
+  } catch (e) {
+    if (e instanceof ErrorGitHub && [401, 403, 404].includes(e.estado)) {
+      borrarToken();
+      return pantallaToken(e.estado === 401
+        ? 'El token no vale, ha caducado o se ha revocado. Crea uno nuevo.'
+        : `Ese token no tiene acceso a ${REPO}. Revisa que incluya ese repo con «Contents: Read and write».`);
+    }
+    app.innerHTML = `<h1>Parking 37</h1><p class="error">No se ha podido conectar con GitHub.</p>
+      <button class="boton" id="reintentar">Reintentar</button>`;
+    document.getElementById('reintentar').onclick = () => iniciar(token);
+  }
+}
+
+function pantallaToken(mensaje = '') {
+  nav.hidden = true;
+  datos = null;
+  app.innerHTML = `
+    <h1>Parking 37</h1>
+    <p class="suave">Reparto de la plaza #37 (in). Para entrar hace falta tu token de GitHub; se guarda solo en este dispositivo.</p>
+    ${mensaje ? `<div class="aviso">${esc(mensaje)}</div>` : ''}
+    <div class="tarjeta">
+      <p><b>1.</b> <a href="${URL_TOKEN}" target="_blank" rel="noopener">Crea un token fine-grained</a>:
+        acceso solo al repo <code>${OWNER}/${REPO}</code>, permiso <i>Contents: Read and write</i>.</p>
+      <p><b>2.</b> Pégalo aquí:</p>
+      <form id="form-token">
+        <input type="password" id="token" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…" required>
+        <p></p>
+        <button class="boton" type="submit">Entrar</button>
+      </form>
+    </div>`;
+  document.getElementById('form-token').onsubmit = (ev) => {
+    ev.preventDefault();
+    const t = document.getElementById('token').value.trim();
+    app.querySelector('button[type=submit]').disabled = true;
+    iniciar(t, true);
+  };
+}
+
+function salir() {
+  if (!confirm('¿Cerrar sesión en este dispositivo? Se borrará el token guardado.')) return;
+  borrarToken();
+  borrador = null;
+  pantallaToken();
+}
+
+async function recargar() {
+  try {
+    datos = await almacen.leer();
+  } catch (e) {
+    if (e.estado === 401) return pantallaToken('El token ha caducado o se ha revocado. Crea uno nuevo.');
+  }
+  pintar();
+}
+
+// Cada cambio es un commit. Si el otro guardó entre medias, el almacén
+// relee y reaplica; si aun así choca, se avisa.
+async function aplicar(cambio, exito) {
+  ocupado = true;
+  estado = { texto: 'Guardando…', error: false };
+  pintar();
+  try {
+    datos = await almacen.guardar(cambio.mutar, cambio.mensaje, datos);
+    estado = { texto: exito, error: false };
+    return true;
+  } catch (e) {
+    if (e.estado === 401) { borrarToken(); pantallaToken('El token ha caducado o se ha revocado. Crea uno nuevo.'); return false; }
+    estado = {
+      texto: e instanceof cambios.CambioNoValido ? e.message
+        : [409, 422].includes(e.estado) ? `${nombre(otro)} estaba guardando a la vez. Revisa y vuelve a intentarlo.`
+        : 'No se ha podido guardar. Comprueba la conexión y vuelve a intentarlo.',
+      error: true,
+    };
+    try { datos = await almacen.leer(); } catch {}
+    return false;
+  } finally {
+    ocupado = false;
+    pintar();
+  }
+}
+
+// ── Vistas ────────────────────────────────────────────────────────────────
+
+function pintar() {
+  nav.hidden = false;
+  for (const b of nav.querySelectorAll('button')) b.setAttribute('aria-current', b.dataset.pestana === pestana ? 'page' : 'false');
+  const hoy = hoyMadrid();
+  const vista = { siguiente: vistaSiguiente, actual: vistaActual, marcador: vistaMarcador }[pestana];
+  app.innerHTML = vista(hoy) + `
+    <p id="estado" class="${estado.error ? 'error' : 'suave'}" role="status">${esc(estado.texto)}</p>
+    <div class="pie"><span class="suave">${esc(nombre(yo))} · ${esc(datos.state.plaza)}</span>
+      <button class="enlace" data-accion="salir">Cerrar sesión</button></div>`;
+}
+
+const pastilla = (u) => u === yo ? '<span class="pastilla yo">🟢 Tuya</span>'
+  : u ? `<span class="pastilla otro">🔵 ${esc(nombre(u))}</span>` : '<span class="pastilla libre">⚪ Libre</span>';
+
+// En la semana que viene solo se marca festivo; ceder y «ya no voy» son para la semana en curso.
+function filaDia(d, hoy, semana, { ajustes = true } = {}) {
+  const pasado = d.fecha < hoy;
+  const abierto = diaAbierto(semana, d.dia, hoy);
+  const botones = [];
+  if (ajustes && abierto && !d.festivo && d.asignado === yo) {
+    botones.push(`<button class="chip" data-accion="ceder" data-semana="${semana}" data-dia="${d.dia}">Cederla a ${esc(nombre(otro))}</button>`);
+    botones.push(`<button class="chip peligro" data-accion="cancelar" data-semana="${semana}" data-dia="${d.dia}">Ya no voy</button>`);
+  }
+  const notas = d.ajustes.map((a) => textoAjuste(a)).join(' · ');
+  return `<li class="dia${d.fecha === hoy ? ' hoy' : ''}${pasado ? ' pasado' : ''}">
+    <span class="fecha">${esc(diaCorto(d.fecha))}</span>
+    <span class="quien">${d.festivo ? '<span class="pastilla libre">Festivo</span>' : pastilla(d.asignado)}
+      ${d.solape ? '<span class="rayo" title="Los dos la pedíais">⚡</span>' : ''}</span>
+    ${abierto ? `<button class="enlace festivo" data-accion="festivo" data-semana="${semana}" data-dia="${d.dia}" data-marcar="${!d.festivo}">${d.festivo ? 'Quitar festivo' : 'Festivo'}</button>` : ''}
+    ${notas ? `<span class="notas">${esc(notas)}</span>` : ''}
+    <span class="acciones">${botones.join('')}</span>
+  </li>`;
+}
+
+function textoAjuste(a) {
+  const t = a.tipo === 'cesion'
+    ? (a.de === yo ? `Se la cediste a ${nombre(a.a)}` : `${nombre(a.de)} te la cedió`)
+    : (a.de === yo ? 'Dijiste que ya no ibas' : `${nombre(a.de)} ya no va`);
+  return a.aplicado ? t : `${t} (sin efecto)`;
+}
+
+function avisoFalta(sem, prefijo) {
+  if (!sem?.falta.length) return '';
+  const quienes = sem.falta.map((u) => u === yo ? 'tú' : nombre(u));
+  const texto = `${quienes.length === 2 ? 'ninguno de los dos ha' : `${quienes[0]} aún no ${quienes[0] === 'tú' ? 'has' : 'ha'}`} rellenado la previsión.`;
+  const frase = prefijo + texto;
+  return `<div class="aviso">${esc(frase[0].toUpperCase() + frase.slice(1))}</div>`;
+}
+
+function vistaSiguiente(hoy) {
+  const semana = sumarSemanas(semanaISO(hoy), 1);
+  const guardado = datos.state.semanas[semana]?.prevision?.[yo];
+  const marcados = borrador ?? guardado ?? [];
+  const cambiado = borrador && JSON.stringify(borrador) !== JSON.stringify(guardado ?? null);
+
+  // Asignación provisional con lo que hay en pantalla, aunque no esté guardado.
+  const simulado = structuredClone(datos.state);
+  simulado.semanas[semana] ??= { prevision: {}, ajustes: [], festivos: [] };
+  if (borrador) simulado.semanas[semana].prevision[yo] = borrador;
+  const sem = calcular(simulado).semanas[semana];
+  const delOtro = datos.state.semanas[semana]?.prevision?.[otro];
+  const laborables = DIAS.filter((d) => datos.state.config.dias_laborables.includes(d));
+
+  return `
+    <div class="cabecera"><h1>Semana ${numSemana(semana)}</h1><span class="suave">${esc(rango(semana))}</span></div>
+    <p class="suave">¿Qué días vas? Puedes cambiarlo hasta el domingo a las 23:59.</p>
+    <div class="marcar" role="group" aria-label="Días que vas">
+      ${laborables.map((d) => {
+        const f = fechaDe(semana, d);
+        const festivo = sem.dias[d].festivo;
+        return `<button data-accion="marcar" data-dia="${d}" aria-pressed="${marcados.includes(d)}" ${festivo ? 'disabled' : ''}>
+          <b>${d}</b><span>${festivo ? 'festivo' : fmt(f, { day: 'numeric' })}</span></button>`;
+      }).join('')}
+    </div>
+    <button class="boton" data-accion="guardar" ${!cambiado || ocupado ? 'disabled' : ''}>${guardado && !cambiado ? 'Guardado' : 'Guardar'}</button>
+    <p class="suave" style="margin-top:14px">${esc(nombre(otro))}: ${delOtro ? (delOtro.length ? delOtro.join(' · ') : 'no va ningún día') : 'aún no ha rellenado'}</p>
+    <h2>Asignación provisional</h2>
+    ${avisoFalta(sem, 'Asignación provisional: ')}
+    <ul class="dias tarjeta">${laborables.map((d) => filaDia(sem.dias[d], hoy, semana, { ajustes: false })).join('')}</ul>`;
+}
+
+function vistaActual(hoy) {
+  const semana = semanaISO(hoy);
+  const sem = calcular(datos.state).semanas[semana];
+  const laborables = DIAS.filter((d) => datos.state.config.dias_laborables.includes(d));
+  return `
+    <div class="cabecera"><h1>Esta semana</h1><span class="suave">${esc(rango(semana))}</span></div>
+    <p class="suave">La previsión ya está cerrada. Si cambias de planes, cede la plaza o di que ya no vas.</p>
+    ${sem ? `${avisoFalta(sem, '')}<ul class="dias tarjeta">${laborables.map((d) => filaDia(sem.dias[d], hoy, semana)).join('')}</ul>`
+      : '<div class="tarjeta suave">Nadie rellenó la previsión de esta semana: la plaza está libre.</div>'}`;
+}
+
+function vistaMarcador(hoy) {
+  const r = calcular(datos.state);
+  const actual = semanaISO(hoy);
+  const [a, b] = [yo, otro];
+  const empate = r.ganados[a] === r.ganados[b];
+  const prox = r.proximoSolape;
+  const frase = empate
+    ? `Vais empatados. El próximo solape es para ${prox === yo ? 'ti' : nombre(prox)}${r.ultimoGanador ? `, porque el último ${r.ultimoGanador === yo ? 'te lo llevaste tú' : `se lo llevó ${nombre(r.ultimoGanador)}`}` : ''}.`
+    : `El próximo solape es para ${prox === yo ? 'ti' : nombre(prox)}, que va por detrás.`;
+  const ids = Object.keys(r.semanas).sort();
+  const ultima = ids.at(-1);
+  const pasadas = ids.filter((id) => id < actual).reverse();
+  const laborables = DIAS.filter((d) => datos.state.config.dias_laborables.includes(d));
+
+  return `
+    <h1>Solapes ganados</h1>
+    <div class="tarjeta">
+      <div class="marcador">
+        <div class="yo"><div class="n">${r.ganados[a]}</div><div>${esc(nombre(a))}</div></div>
+        <div class="sep">·</div>
+        <div class="otro"><div class="n">${r.ganados[b]}</div><div>${esc(nombre(b))}</div></div>
+      </div>
+      <p style="margin-top:14px">${esc(frase)}</p>
+      ${ultima ? `<p class="suave">Cuenta todo lo repartido hasta la semana ${numSemana(ultima)}, incluidas las cesiones.</p>` : ''}
+    </div>
+    <h2>Semanas pasadas</h2>
+    ${pasadas.length ? `<div class="historial">${pasadas.map((id) => {
+      const s = r.semanas[id];
+      const notas = laborables.flatMap((d) => s.dias[d].ajustes.map((aj) => `${d}: ${textoAjuste(aj)}`));
+      return `<div class="semana">
+        <div class="cabecera"><b>Semana ${numSemana(id)}</b><span class="suave">${esc(rango(id))}</span></div>
+        <div class="mini">${laborables.map((d) => {
+          const x = s.dias[d];
+          const cls = x.festivo ? 'libre' : x.asignado === yo ? 'yo' : x.asignado ? 'otro' : 'libre';
+          const txt = x.festivo ? 'fest.' : x.asignado ? nombre(x.asignado).slice(0, 1) : '–';
+          return `<span class="${cls}">${d} ${esc(txt)}${x.solape ? '⚡' : ''}</span>`;
+        }).join('')}</div>
+        ${notas.length ? `<p class="suave" style="font-size:.82rem;margin-top:6px">${esc(notas.join(' · '))}</p>` : ''}
+      </div>`;
+    }).join('')}</div>` : '<p class="suave">Todavía no hay semanas pasadas.</p>'}`;
+}
+
+// ── Acciones ──────────────────────────────────────────────────────────────
+
+nav.addEventListener('click', (ev) => {
+  const b = ev.target.closest('button[data-pestana]');
+  if (!b) return;
+  pestana = b.dataset.pestana;
+  estado = { texto: '', error: false };
+  pintar();
+  window.scrollTo(0, 0);
+});
+
+app.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('button[data-accion]');
+  if (!b || ocupado) return;
+  const hoy = hoyMadrid();
+  const { accion, semana, dia } = b.dataset;
+
+  if (accion === 'salir') return salir();
+
+  if (accion === 'marcar') {
+    const s = sumarSemanas(semanaISO(hoy), 1);
+    const actuales = borrador ?? datos.state.semanas[s]?.prevision?.[yo] ?? [];
+    borrador = DIAS.filter((d) => (d === dia) !== actuales.includes(d));
+    estado = { texto: '', error: false };
+    return pintar();
+  }
+
+  if (accion === 'guardar') {
+    const s = sumarSemanas(semanaISO(hoy), 1);
+    const ok = await aplicar(cambios.prevision({ yo, semana: s, dias: borrador ?? [], hoy }), 'Guardado ✓');
+    if (ok) { borrador = null; pintar(); }
+    return;
+  }
+
+  if (accion === 'ceder') {
+    if (!confirm(`¿Ceder el ${diaCorto(fechaDe(semana, dia))} a ${nombre(otro)}? Te contará como solape a favor de ${nombre(otro)}.`)) return;
+    return aplicar(cambios.ajuste({ yo, otro, semana, dia, tipo: 'cesion', hoy }), `Cedida a ${nombre(otro)} ✓`);
+  }
+
+  if (accion === 'cancelar') {
+    const pide = calcular(datos.state).semanas[semana].dias[dia].pide.includes(otro);
+    const consecuencia = pide ? `Pasará a ${nombre(otro)}, que la había pedido, y contará como solape a su favor.` : 'La plaza quedará libre.';
+    if (!confirm(`¿Seguro que ya no vas el ${diaCorto(fechaDe(semana, dia))}? ${consecuencia}`)) return;
+    return aplicar(cambios.ajuste({ yo, otro, semana, dia, tipo: 'cancelacion', hoy }), 'Hecho ✓');
+  }
+
+  if (accion === 'festivo') {
+    const marcar = b.dataset.marcar === 'true';
+    if (!confirm(`¿${marcar ? 'Marcar' : 'Quitar'} el ${diaCorto(fechaDe(semana, dia))} como festivo? Afecta a los dos.`)) return;
+    return aplicar(cambios.festivo({ yo, semana, dia, marcar, hoy }), marcar ? 'Marcado como festivo ✓' : 'Festivo quitado ✓');
+  }
+});
+
+// Al volver a la app (o a la pestaña) se recargan los datos, salvo que
+// haya una previsión sin guardar.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && datos && !borrador && !ocupado) recargar();
+});
+
+iniciar();
+</script>
+</body>
+</html>
