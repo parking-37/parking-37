@@ -83,6 +83,16 @@ test('solo se cede un día con solape', () => {
   assert.doesNotThrow(() => ajuste({ yo: 'sendoa', otro: 'mikel', semana: '2026-W43', dia: 'J', tipo: 'cancelacion', hoy }).mutar(structuredClone(s)));
 });
 
+test('«me la quedo»: solo con la plaza libre, también en una semana sin datos, y el segundo ya no puede', () => {
+  const s = inicial();
+  s.semanas['2026-W43'] = { prevision: { sendoa: ['J'], mikel: [] }, ajustes: [], festivos: ['V'] };
+  assert.throws(() => ajuste({ yo: 'mikel', otro: 'sendoa', semana: '2026-W43', dia: 'J', tipo: 'apunte', hoy }).mutar(structuredClone(s)), /ya no está libre/);
+  assert.throws(() => ajuste({ yo: 'mikel', otro: 'sendoa', semana: '2026-W43', dia: 'V', tipo: 'apunte', hoy }).mutar(structuredClone(s)), /festivo/);
+  const vacia = ajuste({ yo: 'mikel', otro: 'sendoa', semana: '2026-W44', dia: 'L', tipo: 'apunte', hoy }).mutar(inicial());
+  assert.equal(calcular(vacia).semanas['2026-W44'].dias.L.asignado, 'mikel');
+  assert.throws(() => ajuste({ yo: 'sendoa', otro: 'mikel', semana: '2026-W44', dia: 'L', tipo: 'apunte', hoy }).mutar(vacia), /ya no está libre/);
+});
+
 test('fuera de plazo: ni previsión de la semana en curso ni ajustes de días pasados', () => {
   const s = inicial();
   assert.throws(() => prevision({ yo: 'sendoa', semana: '2026-W43', dias: ['V'], hoy }).mutar(s), CambioNoValido);

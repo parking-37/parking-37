@@ -153,3 +153,32 @@ test('hora de Madrid y plazo del domingo 23:59, con cambio de hora', () => {
   assert.equal(hoyMadrid(new Date('2026-06-28T21:59:00Z')), '2026-06-28');
   assert.equal(hoyMadrid(new Date('2026-06-28T22:00:00Z')), '2026-06-29');
 });
+
+test('«me la quedo» en un día libre: es suya y el marcador no cambia', () => {
+  const r = calcular(base({ '2026-W44': sem(['L'], ['M'], {
+    ajustes: [{ dia: 'X', tipo: 'apunte', de: 'mikel', a: null, por: 'mikel', ts: '2026-10-28T07:00:00Z' }],
+  }) }));
+  assert.equal(r.semanas['2026-W44'].dias.X.asignado, 'mikel');
+  assert.equal(r.semanas['2026-W44'].dias.X.solape, false);
+  assert.deepEqual(r.ganados, { sendoa: 0, mikel: 0 });
+});
+
+test('«me la quedo» sobre un día que no está libre: no se aplica', () => {
+  const r = calcular(base({ '2026-W44': sem(['L'], [], {
+    ajustes: [{ dia: 'L', tipo: 'apunte', de: 'mikel', a: null, por: 'mikel', ts: '2026-10-26T07:00:00Z' }],
+  }) }));
+  assert.equal(r.semanas['2026-W44'].dias.L.asignado, 'sendoa');
+  assert.equal(r.semanas['2026-W44'].dias.L.ajustes[0].aplicado, false);
+});
+
+test('ya no va, el otro se la queda y luego tampoco va: queda libre, sin devolverla ni tocar el marcador', () => {
+  const r = calcular(base({ '2026-W44': sem([], ['X'], {
+    ajustes: [
+      { dia: 'X', tipo: 'cancelacion', de: 'mikel', a: null, por: 'mikel', ts: '2026-10-27T08:00:00Z' },
+      { dia: 'X', tipo: 'apunte', de: 'sendoa', a: null, por: 'sendoa', ts: '2026-10-27T09:00:00Z' },
+      { dia: 'X', tipo: 'cancelacion', de: 'sendoa', a: null, por: 'sendoa', ts: '2026-10-27T10:00:00Z' },
+    ],
+  }) }));
+  assert.equal(r.semanas['2026-W44'].dias.X.asignado, null);
+  assert.deepEqual(r.ganados, { sendoa: 0, mikel: 0 });
+});

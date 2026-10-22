@@ -1,5 +1,5 @@
 // Recorre la web con un GitHub simulado (datos de prueba en memoria) y saca
-// capturas a 360 px: token → previsión → guardar → ceder en próxima → esta semana → «Ya no voy» → marcador.
+// capturas a 360 px: token → previsión → guardar → ceder en próxima → esta semana → «Ya no voy» → «Me la quedo» → marcador.
 // Uso: node mirar.mjs http://127.0.0.1:8737/ /ruta/prefijo [light|dark]
 // (servir antes web/ con: python3.12 -m http.server 8737 --bind 127.0.0.1)
 // El reloj se fija al jueves 22/10/2026: si cambian los datos de prueba, cambiar también la fecha.
@@ -55,6 +55,9 @@ await page.screenshot({ path: `${out}-3-actual.png`, fullPage: true });
 await page.click('button[data-accion="cancelar"][data-dia="J"]');
 await page.waitForSelector('text=Hecho ✓');
 await page.screenshot({ path: `${out}-4-actual-tras.png`, fullPage: true });
+await page.click('button[data-accion="quedar"][data-dia="J"]');
+await page.waitForSelector('text=Es tuya ✓');
+await page.screenshot({ path: `${out}-4b-me-la-quedo.png`, fullPage: true });
 await page.click('nav button[data-pestana="marcador"]');
 await page.screenshot({ path: `${out}-5-marcador.png`, fullPage: true });
 console.log('commits', commits);

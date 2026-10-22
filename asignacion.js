@@ -85,13 +85,18 @@ export function calcular(state) {
       }
 
       const ajustes = (s.ajustes ?? []).filter((a) => a.dia === dia).sort((a, b) => a.ts.localeCompare(b.ts));
+      const yaNoVan = new Set();
       for (const a of ajustes) {
-        // Un ajuste solo vale si lo hace quien tiene la plaza en ese momento.
-        const aplicado = a.de === r.asignado;
+        // Un ajuste solo vale si lo hace quien tiene la plaza en ese momento;
+        // «me la quedo» (apunte), solo si la plaza está libre. No cuenta en el marcador.
+        const aplicado = a.tipo === 'apunte' ? r.asignado === null : a.de === r.asignado;
         r.ajustes.push({ ...a, aplicado });
         if (!aplicado) continue;
+        if (a.tipo === 'apunte') { r.asignado = a.de; continue; }
         const otro = otroDe(state, a.de);
-        if (a.tipo === 'cesion' || (a.tipo === 'cancelacion' && pide.includes(otro))) {
+        if (a.tipo === 'cancelacion') yaNoVan.add(a.de);
+        // Una cancelación no devuelve la plaza a quien ya dijo que no iba.
+        if (a.tipo === 'cesion' || (a.tipo === 'cancelacion' && pide.includes(otro) && !yaNoVan.has(otro))) {
           r.asignado = otro;
           ganados[a.de] -= 1;
           ganados[otro] += 1;

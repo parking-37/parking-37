@@ -276,14 +276,17 @@ function pintar() {
 const pastilla = (u) => u === yo ? '<span class="pastilla yo">🟢 Tuya</span>'
   : u ? `<span class="pastilla otro">🔵 ${esc(nombre(u))}</span>` : '<span class="pastilla libre">⚪ Libre</span>';
 
-// Solo se cede un día con solape. En la semana que viene no hay «ya no voy»: basta con desmarcar el día.
-function filaDia(d, hoy, semana, { ceder = true, cancelar = true } = {}) {
+// Solo se cede un día con solape. En la semana que viene no hay «ya no voy» ni «me la quedo»: basta con marcar o desmarcar el día.
+function filaDia(d, hoy, semana, { ceder = true, cancelar = true, quedar = true } = {}) {
   const pasado = d.fecha < hoy;
   const abierto = diaAbierto(semana, d.dia, hoy);
   const botones = [];
   if (abierto && !d.festivo && d.asignado === yo) {
     if (ceder && d.solape) botones.push(`<button class="chip" data-accion="ceder" data-semana="${semana}" data-dia="${d.dia}">Cederla a ${esc(nombre(otro))}</button>`);
     if (cancelar) botones.push(`<button class="chip peligro" data-accion="cancelar" data-semana="${semana}" data-dia="${d.dia}">Ya no voy</button>`);
+  }
+  if (quedar && abierto && !d.festivo && !d.asignado) {
+    botones.push(`<button class="chip" data-accion="quedar" data-semana="${semana}" data-dia="${d.dia}">Me la quedo</button>`);
   }
   const notas = d.ajustes.map((a) => textoAjuste(a)).join(' · ');
   return `<li class="dia${d.fecha === hoy ? ' hoy' : ''}${pasado ? ' pasado' : ''}">
@@ -299,6 +302,7 @@ function filaDia(d, hoy, semana, { ceder = true, cancelar = true } = {}) {
 function textoAjuste(a) {
   const t = a.tipo === 'cesion'
     ? (a.de === yo ? `Se la cediste a ${nombre(a.a)}` : `${nombre(a.de)} te la cedió`)
+    : a.tipo === 'apunte' ? (a.de === yo ? 'Te la quedaste' : `${nombre(a.de)} se la quedó`)
     : (a.de === yo ? 'Dijiste que ya no ibas' : `${nombre(a.de)} ya no va`);
   return a.aplicado ? t : `${t} (sin efecto)`;
 }
@@ -340,18 +344,22 @@ function vistaSiguiente(hoy) {
     <p class="suave" style="margin-top:14px">${esc(nombre(otro))}: ${delOtro ? (delOtro.length ? delOtro.join(' · ') : 'no va ningún día') : 'aún no ha rellenado'}</p>
     <h2>Asignación provisional</h2>
     ${avisoFalta(sem, '')}
-    <ul class="dias tarjeta">${laborables.map((d) => filaDia(sem.dias[d], hoy, semana, { ceder: !cambiado, cancelar: false })).join('')}</ul>`;
+    <ul class="dias tarjeta">${laborables.map((d) => filaDia(sem.dias[d], hoy, semana, { ceder: !cambiado, cancelar: false, quedar: false })).join('')}</ul>`;
 }
 
 function vistaActual(hoy) {
   const semana = semanaISO(hoy);
-  const sem = calcular(datos.state).semanas[semana];
+  const guardada = calcular(datos.state).semanas[semana];
+  // Sin datos de la semana, todos los días salen libres: así se puede usar «Me la quedo».
+  const vacio = structuredClone(datos.state);
+  vacio.semanas[semana] = { prevision: {}, ajustes: [], festivos: [] };
+  const sem = guardada ?? calcular(vacio).semanas[semana];
   const laborables = DIAS.filter((d) => datos.state.config.dias_laborables.includes(d));
   return `
     <div class="cabecera"><h1>Esta semana</h1><span class="suave">${esc(rango(semana))}</span></div>
-    <p class="suave">La previsión ya está cerrada. Si cambias de planes, cede la plaza o di que ya no vas.</p>
-    ${sem ? `${avisoFalta(sem, '')}<ul class="dias tarjeta">${laborables.map((d) => filaDia(sem.dias[d], hoy, semana)).join('')}</ul>`
-      : '<div class="tarjeta suave">Nadie rellenó la previsión de esta semana: la plaza está libre.</div>'}`;
+    <p class="suave">La previsión ya está cerrada. Si cambias de planes, cede la plaza, di que ya no vas o quédate un día libre.</p>
+    ${guardada ? avisoFalta(sem, '') : '<div class="aviso">Nadie rellenó la previsión de esta semana: la plaza está libre.</div>'}
+    <ul class="dias tarjeta">${laborables.map((d) => filaDia(sem.dias[d], hoy, semana)).join('')}</ul>`;
 }
 
 function vistaMarcador(hoy) {
@@ -435,8 +443,14 @@ app.addEventListener('click', async (ev) => {
     return aplicar(cambios.ajuste({ yo, otro, semana, dia, tipo: 'cesion', hoy }), `Cedida a ${nombre(otro)} ✓`);
   }
 
+  if (accion === 'quedar') {
+    if (!confirm(`¿Te quedas la plaza el ${diaCorto(fechaDe(semana, dia))}? Está libre y no cuenta en el marcador.`)) return;
+    return aplicar(cambios.ajuste({ yo, otro, semana, dia, tipo: 'apunte', hoy }), 'Es tuya ✓');
+  }
+
   if (accion === 'cancelar') {
-    const pide = calcular(datos.state).semanas[semana].dias[dia].pide.includes(otro);
+    const d = calcular(datos.state).semanas[semana].dias[dia];
+    const pide = d.pide.includes(otro) && !d.ajustes.some((a) => a.aplicado && a.tipo === 'cancelacion' && a.de === otro);
     const consecuencia = pide ? `Pasará a ${nombre(otro)}, que la había pedido, y contará como solape a su favor.` : 'La plaza quedará libre.';
     if (!confirm(`¿Seguro que ya no vas el ${diaCorto(fechaDe(semana, dia))}? ${consecuencia}`)) return;
     return aplicar(cambios.ajuste({ yo, otro, semana, dia, tipo: 'cancelacion', hoy }), 'Hecho ✓');
