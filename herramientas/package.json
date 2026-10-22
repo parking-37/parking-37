@@ -1,0 +1,7 @@
+{
+  "name": "parking-37-herramientas",
+  "private": true,
+  "type": "module",
+  "description": "Revisión visual de la web con GitHub simulado y generación de iconos. No se publica.",
+  "dependencies": { "playwright": "1.64.1" }
+}
