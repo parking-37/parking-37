@@ -335,7 +335,7 @@ function vistaSiguiente(hoy) {
     <button class="boton" data-accion="guardar" ${!cambiado || ocupado ? 'disabled' : ''}>${guardado && !cambiado ? 'Guardado' : 'Guardar'}</button>
     <p class="suave" style="margin-top:14px">${esc(nombre(otro))}: ${delOtro ? (delOtro.length ? delOtro.join(' · ') : 'no va ningún día') : 'aún no ha rellenado'}</p>
     <h2>Asignación provisional</h2>
-    ${avisoFalta(sem, 'Asignación provisional: ')}
+    ${avisoFalta(sem, '')}
     <ul class="dias tarjeta">${laborables.map((d) => filaDia(sem.dias[d], hoy, semana, { ajustes: false })).join('')}</ul>`;
 }
 
